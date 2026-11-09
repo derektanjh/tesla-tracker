@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tesla Efficiency Log</title>
+<style>
+:root{color-scheme:light;--surface:#fcfcfb;--card:#ffffff;--line:#e6e5e1;--text:#0b0b0b;--text2:#52514e;--muted:#8a8984;--acc:#2a78d6;--good:#15803d;--bad:#b91c1c;--g:#dcebdc;--y:#faefcf;--b:#d3e1f1;--r:#f0d3d3}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--surface:#1a1a19;--card:#232322;--line:#3a3a38;--text:#f0efec;--text2:#c3c2b7;--muted:#8f8e86;--acc:#3987e5;--good:#4ade80;--bad:#f87171;--g:#1d3a26;--y:#3d3519;--b:#1b2f48;--r:#43211f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:22px 16px 60px}
+h1{font-size:24px;margin:0 0 4px}
+.sub{color:var(--text2);margin:0 0 18px;font-size:14px}
+.sub a{color:var(--acc)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.tile b{display:block;font-size:22px;font-weight:650}
+.tile span{font-size:12px;color:var(--text2)}
+.grp{border-radius:10px;padding:10px;margin-bottom:10px}
+.grp.g{background:var(--g)}.grp.y{background:var(--y)}.grp.b{background:var(--b)}.grp.r{background:var(--r)}
+.grp h2{font-size:14px;margin:0 0 8px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>label{flex:1 1 40%}
+label{display:block;font-size:12.5px;color:var(--text2)}
+input{width:100%;margin-top:3px;padding:10px;font:inherit;font-size:16px;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:9px}
+input:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+button{font:inherit;cursor:pointer}
+.save{width:100%;padding:13px;border:0;border-radius:10px;background:var(--acc);color:#fff;font-weight:600}
+.save:disabled{opacity:.6;cursor:default}
+.ghost{background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 12px}
+.ghost.del{color:var(--bad);padding:6px 10px}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+#msg{min-height:1.2em;font-size:13.5px;margin:8px 0 0}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;font-size:13.5px;min-width:100%}
+th,td{padding:7px 8px;border:1px solid var(--line);white-space:nowrap;text-align:right}
+th{font-weight:600}
+th.g,td.g{background:var(--g)}th.y,td.y{background:var(--y)}th.b,td.b{background:var(--b)}th.r,td.r{background:var(--r)}
+tbody tr{cursor:pointer}
+.acts{display:flex;justify-content:space-between;gap:8px;margin-top:12px;flex-wrap:wrap}
+.empty{color:var(--muted);margin:0}
+.draft{font-size:11px;color:var(--muted);font-style:italic}
+</style>
+</head>
+<body>
+<main>
+<h1>Tesla Efficiency Log</h1>
+<p class="sub">Trips are stored in your Google Sheet, so every device shows the same data.</p>
+
+<div class="card" id="setup" style="display:none">
+  <h2 style="font-size:16px;margin:0 0 6px">Connect your sheet</h2>
+  <p class="hint" style="margin:0 0 10px">Paste the web app link from your Tesla Trip Relay script. It is kept only in this browser. Anyone with the link can read and add trips, so do not share it.</p>
+  <label>Relay link<input id="relay" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/.../exec"></label>
+  <button class="save" id="connect" style="margin-top:10px">Connect</button>
+  <p id="smsg" role="alert" style="color:var(--bad);font-size:13.5px;margin:8px 0 0"></p>
+</div>
+
+<div id="app" style="display:none">
+<div class="tiles">
+  <div class="tile"><b id="a1">-</b><span>Total distance (km)</span></div>
+  <div class="tile"><b id="a2">-</b><span>Avg km/kWh charged</span></div>
+  <div class="tile"><b id="a3">-</b><span>Avg km/kWh Tesla</span></div>
+</div>
+
+<div class="card">
+  <div class="grp g"><h2>Trip</h2><div class="row">
+    <label>Date *<input id="dt" type="date"></label>
+    <label>Distance (km) *<input id="d" type="number" inputmode="decimal" step="0.1"></label>
+    <label>From (%) *<input id="f" type="number" inputmode="decimal"></label>
+    <label>To (%) *<input id="t" type="number" inputmode="decimal"></label>
+    <label>Remaining range (km), optional<input id="rem" type="number" inputmode="decimal" step="0.1"></label>
+  </div></div>
+  <div class="grp y"><h2>While parked</h2><div class="row">
+    <label>Park (%), optional<input id="pp" type="number" inputmode="decimal" step="0.1"></label>
+    <label>Park distance (km), optional<input id="pk" type="number" inputmode="decimal" step="0.1"></label>
+  </div></div>
+  <div class="grp b"><h2>Charging</h2><div class="row">
+    <label>Power charged (kWh) *<input id="ch" type="number" inputmode="decimal" step="0.01"></label>
+    <label>Charged up to (%) *<input id="ct" type="number" inputmode="decimal" value="80"></label>
+  </div>
+  <p class="hint">If you stop at a different % than usual, change "Charged up to". The adjusted efficiency still works.</p></div>
+  <div class="grp r"><h2>Tesla's trip report</h2><div class="row">
+    <label>Power used (kWh) *<input id="u" type="number" inputmode="decimal" step="0.01"></label>
+  </div></div>
+  <button class="save" id="save">Save trip</button>
+  <button class="ghost" id="draft" style="width:100%;margin-top:8px">Save as draft</button>
+  <div class="row" id="editbar" style="display:none;margin-top:8px"><button class="ghost" id="cancel" style="flex:1">Cancel edit</button></div>
+  <p class="hint">Fields marked * are required to save a trip. Use Save as draft to keep what you have and finish later.</p>
+  <p id="msg" role="alert"></p>
+</div>
+
+<div class="card">
+  <div class="scroll" id="list"></div>
+  <div class="acts"><button class="ghost" id="reload">Refresh</button><button class="ghost" id="unlink">Change sheet link</button></div>
+</div>
+</div>
+</main>
+<script>
+var LS='teslaRelayUrl',url='';
+try{url=localStorage.getItem(LS)||''}catch(e){}
+var trips=[],edit=null,pend=null,pt=null,busy=false;
+var ids=['d','f','t','rem','pp','pk','ct','ch','u'];
+function $(i){return document.getElementById(i)}
+function num(i){var v=parseFloat($(i).value);return isNaN(v)?null:v}
+function n(v,dp,u){return v==null?'':Number(v).toFixed(dp)+(u||'')}
+function say(t,ok){var m=$('msg');m.textContent=t||'';m.style.color=ok?'var(--good)':'var(--bad)'}
+function today(){var d=new Date(),p=function(x){return (x<10?'0':'')+x};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())}
+function calc(r){
+  var o={c:null,a:null,u:null};
+  if(r.d&&r.ch>0)o.c=r.d/r.ch;
+  if(r.d&&r.ch>0&&r.f!=null&&r.t!=null&&r.ct!=null&&r.ct>r.t&&r.f>r.t)o.a=r.d/((r.f-r.t)*r.ch/(r.ct-r.t));
+  if(r.d&&r.u>0)o.u=r.d/r.u;
+  return o;
+}
+function sorted(){return trips.slice().sort(function(a,b){var x=a.date||'',y=b.date||'';return x<y?-1:x>y?1:a.row-b.row})}
+function stats(){
+  var td=0,dc=0,kc=0,du=0,ku=0;
+  trips.forEach(function(r){
+    if(r.status!=='Complete')return;
+    td+=r.d||0;
+    if(r.d&&r.ch>0){dc+=r.d;kc+=r.ch}
+    if(r.d&&r.u>0){du+=r.d;ku+=r.u}
+  });
+  return {td:td.toFixed(1),c:kc?(dc/kc).toFixed(1):'-',u:ku?(du/ku).toFixed(1):'-'};
+}
+function lastCt(){var s=sorted();for(var i=s.length-1;i>=0;i--){if(s[i].status==='Complete'&&s[i].ct!=null)return s[i].ct}return null}
+function prefill(){if(edit!=null)return;var f=$('f');if(f.value===''){var c=lastCt();if(c!=null)f.value=c}}
+function render(){
+  var h='',s=sorted();
+  s.forEach(function(r){
+    var c=calc(r),dr=r.status==='Draft';
+    h+='<tr data-row="'+r.row+'"><td class="g">'+(r.date||'')+(dr?' <span class="draft">draft</span>':'')+'</td><td class="g">'+n(r.d,1,' km')+'</td><td class="g">'+n(r.f,0,'%')+'</td><td class="g">'+n(r.t,0,'%')+'</td><td class="g">'+n(r.rem,1,' km')+'</td><td class="y">'+n(r.pp,1,'%')+'</td><td class="y">'+n(r.pk,1,' km')+'</td><td class="b">'+n(r.ct,0,'%')+'</td><td class="b">'+n(r.ch,2,' kWh')+'</td><td>'+n(c.c,1,' km/kWh')+'</td><td>'+n(c.a,1,' km/kWh')+'</td><td class="r">'+n(r.u,2,' kWh')+'</td><td>'+n(c.u,1,' km/kWh')+'</td><td><button class="ghost del" data-del="'+r.row+'" aria-label="Delete trip">'+(pend===r.row?'Sure?':'✕')+'</button></td></tr>';
+  });
+  $('list').innerHTML=s.length?'<table><thead><tr><th class="g">Date</th><th class="g">Distance</th><th class="g">From</th><th class="g">To</th><th class="g">Remaining</th><th class="y">Park %</th><th class="y">Park dist.</th><th class="b">Up to</th><th class="b">Power charged</th><th>Eff. charged</th><th>Eff. adjusted</th><th class="r">Power used</th><th>Eff. Tesla</th><th></th></tr></thead><tbody>'+h+'</tbody></table>':'<p class="empty">No trips yet. Fill in the form above and tap Save trip.</p>';
+  var S=stats();$('a1').textContent=S.td;$('a2').textContent=S.c;$('a3').textContent=S.u;
+  var er=edit!=null?trips.filter(function(t){return t.row===edit})[0]:null;
+  $('save').textContent=er?'Update trip':'Save trip';
+  $('draft').style.display=(!er||er.status==='Draft')?'block':'none';
+  $('editbar').style.display=er?'flex':'none';
+}
+function clearForm(){
+  ids.forEach(function(i){$(i).value=i==='ct'?80:''});
+  $('dt').value=today();edit=null;render();prefill();
+}
+function call(opts){
+  if(busy)return Promise.reject(new Error('Still working, try again in a moment'));
+  busy=true;$('save').disabled=true;$('draft').disabled=true;
+  return fetch(url,opts).then(function(r){return r.json()}).then(function(j){
+    if(!j.ok)throw new Error(j.error||'The sheet reported an error');
+    trips=j.trips;
+  }).then(function(){busy=false;$('save').disabled=false;$('draft').disabled=false;},function(e){busy=false;$('save').disabled=false;$('draft').disabled=false;throw e});
+}
+function post(body){return call({method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)})}
+function load(){
+  say('Loading...',true);
+  return call().then(function(){say('');render();prefill()}).catch(function(e){say('Could not reach the sheet: '+e.message)});
+}
+function collect(){var t={date:$('dt').value||null};ids.forEach(function(i){t[i]=num(i)});return t}
+function doSave(draft){
+  var t=collect();
+  if(!draft){
+    var req=[['dt','the date'],['d','the distance'],['f','From %'],['t','To %'],['ch','the power charged'],['ct','Charged up to %'],['u','the power used']];
+    for(var q=0;q<req.length;q++){if(t[req[q][0]]==null){say('Enter '+req[q][1]+'.');return}}
+    if(t.f<=t.t){say('From % must be higher than To %.');return}
+    if(t.ct<=t.t){say('Charged up to % must be higher than To %.');return}
+  }else if(t.d==null&&t.f==null&&t.t==null&&t.pk==null&&t.rem==null){say('Enter at least one figure to save a draft.');return}
+  t.status=draft?'Draft':'Complete';
+  say('Saving...',true);
+  post({action:'save',row:edit,trip:t}).then(function(){say(draft?'Draft saved.':'Trip saved.',true);clearForm()}).catch(function(e){say('Not saved: '+e.message)});
+}
+$('save').onclick=function(){doSave(false)};
+$('draft').onclick=function(){doSave(true)};
+$('cancel').onclick=function(){say('');clearForm()};
+$('reload').onclick=function(){load()};
+$('list').onclick=function(e){
+  var b=e.target.closest('button[data-del]');
+  if(b){
+    var row=Number(b.getAttribute('data-del'));
+    if(pend===row){
+      pend=null;clearTimeout(pt);say('Deleting...',true);
+      post({action:'delete',row:row}).then(function(){say('Trip deleted.',true);if(edit===row)clearForm();else render()}).catch(function(x){say('Not deleted: '+x.message);render()});
+    }else{pend=row;render();clearTimeout(pt);pt=setTimeout(function(){pend=null;render()},4000)}
+    return;
+  }
+  var tr=e.target.closest('tr[data-row]');if(!tr)return;
+  var row2=Number(tr.getAttribute('data-row')),r=trips.filter(function(t){return t.row===row2})[0];
+  if(!r)return;
+  edit=row2;
+  ids.forEach(function(i){$(i).value=r[i]==null?'':r[i]});
+  $('dt').value=r.date||today();
+  say('');render();window.scrollTo({top:0,behavior:'smooth'});
+};
+function showApp(){
+  $('setup').style.display=url?'none':'block';
+  $('app').style.display=url?'block':'none';
+}
+$('connect').onclick=function(){
+  var v=$('relay').value.trim();
+  if(v.indexOf('https://script.google.com/macros/s/')!==0||v.slice(-5)!=='/exec'){$('smsg').textContent='That does not look like the web app link. It should start with https://script.google.com/macros/s/ and end with /exec.';return}
+  $('smsg').textContent='';url=v;try{localStorage.setItem(LS,url)}catch(e){}
+  showApp();clearForm();load();
+};
+$('unlink').onclick=function(){
+  if($('unlink').textContent!=='Tap again to confirm'){$('unlink').textContent='Tap again to confirm';setTimeout(function(){$('unlink').textContent='Change sheet link'},4000);return}
+  try{localStorage.removeItem(LS)}catch(e){}
+  url='';trips=[];$('unlink').textContent='Change sheet link';$('relay').value='';showApp();
+};
+showApp();
+if(url){clearForm();load()}
+</script>
+</body>
+</html>
