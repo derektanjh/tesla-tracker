@@ -3,212 +3,504 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tesla Efficiency Log</title>
+<title>Tesla Efficiency</title>
+<link rel="icon" href="tesla-icon.svg" type="image/svg+xml">
+<link rel="icon" href="tesla-icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="tesla-icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tesla Log">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#fcfcfb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a1a19" media="(prefers-color-scheme: dark)">
+<style id="splash-css">#splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--sp1,#1c5cab),var(--sp2,#0d366b));color:#fff;opacity:1;transition:opacity .45s ease,visibility .45s;animation:spfail .01s linear 5s forwards}
+#splash.out{opacity:0;visibility:hidden;pointer-events:none}
+#splash .sp-in{text-align:center;animation:sppop .6s cubic-bezier(.2,.9,.3,1.2) both}
+#splash img{width:104px;height:104px;border-radius:24px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+#splash .sp-name{margin-top:16px;font:600 18px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.2px}
+#splash .sp-dots{display:flex;gap:7px;justify-content:center;margin-top:18px}
+#splash .sp-dots i{width:8px;height:8px;border-radius:50%;background:#fff;opacity:.35;animation:spdot 1s ease-in-out infinite}
+#splash .sp-dots i:nth-child(2){animation-delay:.15s}
+#splash .sp-dots i:nth-child(3){animation-delay:.3s}
+@keyframes sppop{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
+@keyframes spdot{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-5px)}}
+@keyframes spfail{to{opacity:0;visibility:hidden;pointer-events:none}}
+@media (prefers-reduced-motion:reduce){#splash .sp-in,#splash .sp-dots i{animation:none}}</style>
+<link rel="stylesheet" href="portal.css">
 <style>
-:root{color-scheme:light;--surface:#fcfcfb;--card:#ffffff;--line:#e6e5e1;--text:#0b0b0b;--text2:#52514e;--muted:#8a8984;--acc:#2a78d6;--good:#15803d;--bad:#b91c1c;--g:#dcebdc;--y:#faefcf;--b:#d3e1f1;--r:#f0d3d3}
-@media (prefers-color-scheme:dark){:root{color-scheme:dark;--surface:#1a1a19;--card:#232322;--line:#3a3a38;--text:#f0efec;--text2:#c3c2b7;--muted:#8f8e86;--acc:#3987e5;--good:#4ade80;--bad:#f87171;--g:#1d3a26;--y:#3d3519;--b:#1b2f48;--r:#43211f}}
-*{box-sizing:border-box}
+:root{color-scheme:light dark;--surface:#fcfcfb;--card:#ffffff;--line:#e6e5e1;--grid:#eeede9;--soft:#f3f2ef;--text:#0b0b0b;--text2:#52514e;--muted:#8a8984;--accent:#0f766e;--accent-ink:#ffffff;--good:#15803d;--bad:#b91c1c;
+  --c-trip:#16a34a;--c-park:#d97706;--c-chg:#2563eb;--c-tsl:#dc2626;--c-eff:#0f766e;--l1:#0f766e;--l2:#94a3b8}
+@media (prefers-color-scheme:dark){:root{--surface:#1a1a19;--card:#232322;--line:#3a3a38;--grid:#2e2e2c;--soft:#2c2c2a;--text:#f0efec;--text2:#c3c2b7;--muted:#8f8e86;--accent:#2dd4bf;--accent-ink:#04261f;--good:#4ade80;--bad:#f87171;
+  --c-trip:#4ade80;--c-park:#fbbf24;--c-chg:#60a5fa;--c-tsl:#f87171;--c-eff:#2dd4bf;--l1:#2dd4bf;--l2:#7c8696}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--surface);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-main{max-width:760px;margin:0 auto;padding:22px 16px 60px}
-h1{font-size:24px;margin:0 0 4px}
-.sub{color:var(--text2);margin:0 0 18px;font-size:14px}
-.sub a{color:var(--acc)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+/* top bar */
+header.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;background:color-mix(in srgb,var(--card) 88%,transparent);-webkit-backdrop-filter:saturate(1.4) blur(10px);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line);padding:calc(10px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) 10px calc(24px + env(safe-area-inset-left))}
+header .logo{width:40px;height:40px;border-radius:10px;flex:none}
+.ttl{flex:1;min-width:0}
+.ttl h1{font-size:20px;line-height:1.2;margin:0;letter-spacing:-.01em}
+.ttl .meta{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+main{max-width:1280px;margin:0 auto;padding:20px calc(16px + env(safe-area-inset-right)) calc(100px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
+h2{font-size:16px;margin:0 0 2px}
+.note{font-size:13px;color:var(--text2)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+.card-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+/* buttons */
+.btn{font:inherit;font-weight:600;padding:10px 16px;border-radius:12px;border:1px solid transparent;background:var(--accent);color:var(--accent-ink);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;transition:transform .08s,opacity .2s;position:relative}
+.btn.secondary{background:var(--soft);color:var(--text);border-color:var(--line)}
+.btn.danger{background:none;color:var(--bad);border-color:var(--line)}
+.btn.danger.sure{background:var(--bad);color:#fff;border-color:var(--bad)}
+.btn.small{min-height:34px;padding:6px 12px;font-size:13.5px;border-radius:10px}
+.btn:disabled{opacity:.55;cursor:default}
+.fab{display:none;position:fixed;right:calc(18px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));z-index:25;box-shadow:0 8px 24px rgba(0,0,0,.22);border-radius:999px;padding:14px 22px;font-size:16px}
+.fab svg,#hdrAdd svg{width:17px;height:17px}
+/* page message */
+.pmsg{display:none;padding:10px 14px;border-radius:12px;margin-bottom:14px;font-weight:600;font-size:14px;border:1px solid var(--line);background:var(--card)}
+.pmsg.on{display:block}
+.pmsg.ok{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
+.pmsg.wait{color:var(--c-park);border-color:color-mix(in srgb,var(--c-park) 45%,var(--line))}
+.chip.up{color:var(--c-chg);border-color:color-mix(in srgb,var(--c-chg) 55%,var(--line))}
+.pmsg.err{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}
+/* drafts */
+.drafts{border-left:4px solid var(--c-park)}
+.draft-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin-top:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--soft);font:inherit;color:var(--text);cursor:pointer;text-align:left}
+.draft-row b{font-weight:600}
+.draft-row span:last-child{color:var(--accent);font-weight:600;white-space:nowrap}
+/* stat tiles */
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-.tile b{display:block;font-size:22px;font-weight:650}
-.tile span{font-size:12px;color:var(--text2)}
-.grp{border-radius:10px;padding:10px;margin-bottom:10px}
-.grp.g{background:var(--g)}.grp.y{background:var(--y)}.grp.b{background:var(--b)}.grp.r{background:var(--r)}
-.grp h2{font-size:14px;margin:0 0 8px}
-.row{display:flex;gap:10px;flex-wrap:wrap}
-.row>label{flex:1 1 40%}
-label{display:block;font-size:12.5px;color:var(--text2)}
-input{width:100%;margin-top:3px;padding:10px;font:inherit;font-size:16px;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:9px}
-input:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-button{font:inherit;cursor:pointer}
-.save{width:100%;padding:13px;border:0;border-radius:10px;background:var(--acc);color:#fff;font-weight:600}
-.save:disabled{opacity:.6;cursor:default}
-.ghost{background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 12px}
-.ghost.del{color:var(--bad);padding:6px 10px}
-.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
-#msg{min-height:1.2em;font-size:13.5px;margin:8px 0 0}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.tile .k{font-size:12.5px;color:var(--text2);font-weight:600}
+.tile .v{font-size:26px;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:4px}
+.tile .v small{font-size:14px;font-weight:600;color:var(--text2);margin-left:3px}
+.tile .d{font-size:12px;color:var(--muted);margin-top:2px}
+.tile.hero{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.tile.hero .v{color:var(--accent)}
+.skel{color:transparent!important;display:inline-block;min-width:90px;border-radius:6px;background:linear-gradient(90deg,var(--soft) 25%,var(--line) 50%,var(--soft) 75%);background-size:200% 100%;animation:shim 1.2s linear infinite}
+.skel small{visibility:hidden}
+@keyframes shim{to{background-position:-200% 0}}
+.spin{display:inline-block;width:14px;height:14px;margin-right:8px;vertical-align:-2px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:pspin .7s linear infinite}
+/* chart */
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--text2)}
+.legend span::before{content:"";display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;background:var(--c);vertical-align:3px}
+.chartwrap{position:relative;touch-action:pan-y;margin-top:6px}
+svg{display:block;overflow:visible}
+svg text{fill:var(--text2);font-size:12px}
+.tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px;box-shadow:0 6px 18px rgba(0,0,0,.14);display:none;white-space:nowrap;z-index:5}
+.tip b{display:block;margin-bottom:2px}
+/* table */
 .scroll{overflow-x:auto}
-table{border-collapse:collapse;font-size:13.5px;min-width:100%}
-th,td{padding:7px 8px;border:1px solid var(--line);white-space:nowrap;text-align:right}
-th{font-weight:600}
-th.g,td.g{background:var(--g)}th.y,td.y{background:var(--y)}th.b,td.b{background:var(--b)}th.r,td.r{background:var(--r)}
+table{border-collapse:collapse;font-size:13.5px;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:9px 10px;white-space:nowrap;text-align:right;border-bottom:1px solid var(--line)}
+th{font-weight:600;font-size:12.5px;color:var(--text2)}
+thead tr.grp th{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--c);padding-bottom:5px}
+thead tr.grp th.gap{border-bottom:none}
+th.l,td.l{text-align:left}
+td.sep,th.sep{border-left:1px solid var(--line)}
 tbody tr{cursor:pointer}
-.acts{display:flex;justify-content:space-between;gap:8px;margin-top:12px;flex-wrap:wrap}
-.empty{color:var(--muted);margin:0}
-.draft{font-size:11px;color:var(--muted);font-style:italic}
+tbody tr:hover{background:var(--soft)}
+td.eff{font-weight:600}
+td.dim{color:var(--muted)}
+.chip{font-size:11.5px;padding:1px 8px;border-radius:99px;border:1px solid color-mix(in srgb,var(--c-park) 60%,var(--line));color:var(--c-park);margin-left:6px;font-weight:600}
+.edit-l{color:var(--accent);font-weight:600;font-size:13px}
+/* phone cards */
+.cards{display:none}
+.trip{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card);cursor:pointer}
+.t-head{display:flex;align-items:center;gap:8px}
+.t-date{flex:1;font-weight:600}
+.t-main{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 8px}
+.t-main b{font-size:22px;font-variant-numeric:tabular-nums}
+.t-main span{color:var(--text2);font-size:13.5px}
+.t-eff{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.t-eff div{background:var(--soft);border-radius:10px;padding:6px 8px;text-align:center}
+.t-eff b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+.t-eff span{font-size:11px;color:var(--muted)}
+.t-meta{font-size:12.5px;color:var(--muted);margin-top:8px}
+.empty{color:var(--muted);margin:4px 0}
+.only-m{display:none}
+.acts{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+/* explainer */
+details.explain{margin-top:2px}
+details.explain summary{cursor:pointer;color:var(--accent);font-size:13.5px;font-weight:600;list-style:none}
+details.explain summary::-webkit-details-marker{display:none}
+details.explain summary::before{content:"ⓘ ";}
+.defs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.defs div{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--text2)}
+.defs b{display:block;color:var(--text);margin-bottom:2px}
+/* panel (add / edit trip) */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.sheet{background:var(--card);width:min(760px,100%);max-height:min(92vh,960px);overflow:auto;border-radius:18px;padding:20px 22px;position:relative;-webkit-overflow-scrolling:touch}
+.sheet h3{margin:0;font-size:19px}
+.sheet .x{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;border:none;background:var(--soft);color:var(--text);font-size:20px;cursor:pointer}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0 4px}
+.grp{border:1px solid var(--line);border-left:4px solid var(--c);border-radius:12px;padding:12px 14px}
+.grp h4{font-size:13.5px;margin:0 0 2px}
+.grp .gh{font-size:12px;color:var(--muted);margin:0 0 8px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.span2{grid-column:1/-1}
+label{display:block;font-size:12.5px;color:var(--text2)}
+label i{font-style:normal;color:var(--bad)}
+label small{color:var(--muted)}
+input{width:100%;min-height:44px;margin-top:3px;padding:9px 10px;font:inherit;font-size:16px;color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.fields>label,.fields input{min-width:0}
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;max-width:100%;min-width:0;text-align:left;line-height:1.2}
+input[type=date]::-webkit-date-and-time-value{text-align:left;min-height:1.2em}
+input:focus-visible,button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.actions .btn{flex:1 1 150px}
+.hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+#msg{min-height:0;font-size:13.5px;margin:10px 0}
+#msg:not(:empty){padding:10px 12px;border-radius:10px;background:var(--soft);font-weight:600}
+.delrow{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+/* footer */
+footer{max-width:1280px;margin:0 auto;padding:0 16px calc(28px + env(safe-area-inset-bottom));font-size:12.5px;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+@media (max-width:899px){.tiles{grid-template-columns:1fr 1fr}.defs{grid-template-columns:1fr}}
+@media (max-width:759px){
+  .tbl{display:none}.cards{display:grid;gap:10px}.only-d{display:none}.only-m{display:inline}
+  .tiles{gap:8px}.tile{padding:11px 12px}.tile .v{font-size:21px}.tile .d{font-size:11.5px}
+  .ttl h1{font-size:18px}
+  .card{padding:14px}
+  #hdrAdd{display:none}.fab{display:inline-flex}
+  .overlay{align-items:flex-end;padding:0}
+  .sheet{border-radius:18px 18px 0 0;max-height:94vh;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+  .formgrid{grid-template-columns:1fr}
+  header.topbar{padding-left:calc(16px + env(safe-area-inset-left));padding-right:calc(16px + env(safe-area-inset-right))}
+}
 </style>
 </head>
 <body>
+<div id="splash" style="--sp1:#12a07c;--sp2:#07493b" role="status" aria-label="Loading"><div class="sp-in"><img src="tesla-icon.svg" alt=""><div class="sp-name">Tesla Efficiency</div><div class="sp-dots"><i></i><i></i><i></i></div></div></div>
+<header class="topbar">
+  <img class="logo" src="tesla-icon.svg" alt="">
+  <div class="ttl"><h1>Tesla Efficiency</h1><div class="meta" id="meta">Connecting to Google Sheet…</div></div>
+  <button class="btn" id="hdrAdd" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add trip</button>
+</header>
 <main>
-<h1>Tesla Efficiency Log</h1>
-<p class="sub">Trips are stored in your Google Sheet, so every device shows the same data.</p>
-
-<div class="card" id="setup" style="display:none">
-  <h2 style="font-size:16px;margin:0 0 6px">Connect your sheet</h2>
-  <p class="hint" style="margin:0 0 10px">Paste the web app link from your Tesla Trip Relay script. It is kept only in this browser. Anyone with the link can read and add trips, so do not share it.</p>
-  <label>Relay link<input id="relay" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/.../exec"></label>
-  <button class="save" id="connect" style="margin-top:10px">Connect</button>
-  <p id="smsg" role="alert" style="color:var(--bad);font-size:13.5px;margin:8px 0 0"></p>
-</div>
-
+<div class="pmsg" id="pmsg" role="status"></div>
 <div id="app" style="display:none">
+<div id="drafts"></div>
+
 <div class="tiles">
-  <div class="tile"><b id="a1">-</b><span>Total distance (km)</span></div>
-  <div class="tile"><b id="a2">-</b><span>Avg km/kWh charged</span></div>
-  <div class="tile"><b id="a3">-</b><span>Avg km/kWh Tesla</span></div>
+  <div class="tile"><div class="k">Total distance</div><div class="v" id="a1">0.0</div><div class="d" id="a1d">Completed trips</div></div>
+  <div class="tile hero"><div class="k">Adjusted for charge level</div><div class="v" id="a3">0.0</div><div class="d">Energy added at the charger, scaled to the % you actually used</div></div>
+  <div class="tile"><div class="k">Tesla's reading</div><div class="v" id="a4">0.0</div><div class="d">Distance ÷ energy shown on Tesla's trip screen</div></div>
+</div>
+
+<div class="card" id="trendCard" style="display:none">
+  <div class="card-h"><div><h2>Efficiency per trip</h2><div class="note">km per kWh for each completed trip, oldest to newest. Higher is better.</div></div>
+  <div class="legend"><span style="--c:var(--l1)">Adjusted</span><span style="--c:var(--l2)">Tesla's reading</span></div></div>
+  <div class="chartwrap" id="trend"></div>
 </div>
 
 <div class="card">
-  <div class="grp g"><h2>Trip</h2><div class="row">
-    <label>Date *<input id="dt" type="date"></label>
-    <label>Distance (km) *<input id="d" type="number" inputmode="decimal" step="0.1"></label>
-    <label>From (%) *<input id="f" type="number" inputmode="decimal"></label>
-    <label>To (%) *<input id="t" type="number" inputmode="decimal"></label>
-    <label>Remaining range (km), optional<input id="rem" type="number" inputmode="decimal" step="0.1"></label>
-  </div></div>
-  <div class="grp y"><h2>While parked</h2><div class="row">
-    <label>Park (%), optional<input id="pp" type="number" inputmode="decimal" step="0.1"></label>
-    <label>Park distance (km), optional<input id="pk" type="number" inputmode="decimal" step="0.1"></label>
-  </div></div>
-  <div class="grp b"><h2>Charging</h2><div class="row">
-    <label>Power charged (kWh) *<input id="ch" type="number" inputmode="decimal" step="0.01"></label>
-    <label>Charged up to (%) *<input id="ct" type="number" inputmode="decimal" value="80"></label>
+  <div class="card-h"><div><h2>Trip history</h2><div class="note"><span class="only-d">Click a trip to edit or delete it.</span><span class="only-m">Tap a trip to edit or delete it.</span></div></div>
+  <details class="explain"><summary>What do the efficiency numbers mean?</summary></details></div>
+  <div class="defs" id="defs" style="display:none">
+    <div><b>Adjusted for charge level</b>Distance ÷ the energy this trip actually used, worked out from what you added at the charger and the battery % you used. Includes charging losses and stays fair when you don't charge back to the same level.</div>
+    <div><b>Tesla's reading</b>Distance ÷ energy from Tesla's own trip screen. Excludes charging losses, so it's usually higher.</div>
   </div>
-  <p class="hint">If you stop at a different % than usual, change "Charged up to". The adjusted efficiency still works.</p></div>
-  <div class="grp r"><h2>Tesla's trip report</h2><div class="row">
-    <label>Power used (kWh) *<input id="u" type="number" inputmode="decimal" step="0.01"></label>
-  </div></div>
-  <button class="save" id="save">Save trip</button>
-  <button class="ghost" id="draft" style="width:100%;margin-top:8px">Save as draft</button>
-  <div class="row" id="editbar" style="display:none;margin-top:8px"><button class="ghost" id="cancel" style="flex:1">Cancel edit</button></div>
-  <p class="hint">Fields marked * are required to save a trip. Use Save as draft to keep what you have and finish later.</p>
-  <p id="msg" role="alert"></p>
-</div>
-
-<div class="card">
-  <div class="scroll" id="list"></div>
-  <div class="acts"><button class="ghost" id="reload">Refresh</button><button class="ghost" id="unlink">Change sheet link</button></div>
+  <div class="scroll tbl" id="list"></div>
+  <div class="cards" id="cards"></div>
+  <div class="acts"><button class="btn secondary small" id="reload" type="button">Refresh</button></div>
 </div>
 </div>
 </main>
+<footer><span>Data: your Google Sheet</span><span>·</span><span>Efficiency in km/kWh</span><span>·</span><span>Works offline: trips saved without signal upload later</span><span>·</span><span>Tesla Efficiency v2.1</span></footer>
+
+<button class="btn fab" id="fab" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add trip</button>
+
+<div class="overlay" id="ov" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="formtitle">
+    <button class="x" type="button" id="shX" aria-label="Close">×</button>
+    <h3 id="formtitle">New trip</h3>
+    <div class="note">Fields marked <span style="color:var(--bad)">*</span> are needed to save a trip. Missing something? Save it as a draft and finish later.</div>
+    <div class="formgrid">
+      <div class="grp" style="--c:var(--c-trip)"><h4>Trip</h4><p class="gh">From the car's trip meter</p><div class="fields">
+        <label class="span2">Date <i>*</i><input id="dt" type="date"></label>
+        <label>Distance (km) <i>*</i><input id="d" type="number" inputmode="decimal" step="0.1"></label>
+        <label>Range left (km) <small>optional</small><input id="rem" type="number" inputmode="decimal" step="0.1"></label>
+        <label>Battery at start (%) <i>*</i><input id="f" type="number" inputmode="decimal"></label>
+        <label>Battery at end (%) <i>*</i><input id="t" type="number" inputmode="decimal"></label>
+      </div></div>
+      <div class="grp" style="--c:var(--c-tsl)"><h4>Tesla's trip screen</h4><p class="gh">Energy the car says it used</p><div class="fields">
+        <label class="span2">Energy used (kWh) <i>*</i><input id="u" type="number" inputmode="decimal" step="0.01"></label>
+      </div></div>
+      <div class="grp" style="--c:var(--c-chg)"><h4>Charging</h4><p class="gh">From the charger or charging app</p><div class="fields">
+        <label>Energy added (kWh) <i>*</i><input id="ch" type="number" inputmode="decimal" step="0.01"></label>
+        <label>Charged up to (%) <i>*</i><input id="ct" type="number" inputmode="decimal" value="80"></label>
+      </div><p class="hint">Stopped at a different % than usual? Just change "Charged up to". The adjusted figure accounts for it.</p></div>
+      <div class="grp" style="--c:var(--c-park)"><h4>While parked</h4><p class="gh">Optional: battery lost while the car sat</p><div class="fields">
+        <label>Battery lost (%)<input id="pp" type="number" inputmode="decimal" step="0.1"></label>
+        <label>Range lost (km)<input id="pk" type="number" inputmode="decimal" step="0.1"></label>
+      </div></div>
+    </div>
+    <p id="msg" role="alert"></p>
+    <div class="actions">
+      <button class="btn" id="save" type="button">Save trip</button>
+      <button class="btn secondary" id="draft" type="button">Save as draft</button>
+    </div>
+    <div class="delrow" id="delrow" style="display:none">
+      <button class="btn secondary small" id="cancel" type="button">Discard changes</button>
+      <button class="btn danger small" id="delBtn" type="button">Delete this trip</button>
+    </div>
+  </div>
+</div>
+<script src="portal.js" defer></script>
 <script>
-var LS='teslaRelayUrl',url='';
-try{url=localStorage.getItem(LS)||''}catch(e){}
-var trips=[],edit=null,pend=null,pt=null,busy=false;
+var url='https://script.google.com/macros/s/AKfycbz4qt-etrTEQuY-3IPWVLSmfwwHfgIyiNHKTlgTv365oCHYnvmY1to6EU0anp4tfBUn/exec';
+var trips=[],edit=null,busy=false,loaded=false,failed=false;
 var ids=['d','f','t','rem','pp','pk','ct','ch','u'];
+var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function $(i){return document.getElementById(i)}
 function num(i){var v=parseFloat($(i).value);return isNaN(v)?null:v}
 function n(v,dp,u){return v==null?'':Number(v).toFixed(dp)+(u||'')}
-function say(t,ok){var m=$('msg');m.textContent=t||'';m.style.color=ok?'var(--good)':'var(--bad)'}
+function e1(v){return v==null?'–':v.toFixed(1)}
+function fdate(s){if(!s)return 'No date';var p=String(s).slice(0,10).split('-');if(p.length<3)return s;return (+p[2])+' '+MON[+p[1]-1]+' '+p[0]}
+function sdate(s){if(!s)return '';var p=String(s).slice(0,10).split('-');return (+p[2])+' '+MON[+p[1]-1]}
+function say(t,ok){var m=$('msg');m.textContent=t||'';m.style.color=ok?'var(--good)':'var(--bad)';if(t){try{m.scrollIntoView({block:'nearest',behavior:'smooth'})}catch(e){}}}
+var pT;function page(t,ok){var m=$('pmsg');clearTimeout(pT);m.textContent=t||'';m.className='pmsg'+(t?' on '+(ok==='wait'?'wait':ok?'ok':'err'):'');if(t&&ok===true)pT=setTimeout(function(){m.className='pmsg'},5000)}
+var FK='teslaFormBackup';
+function backup(){try{var o={edit:edit,dt:$('dt').value};ids.forEach(function(i){o[i]=$(i).value});localStorage.setItem(FK,JSON.stringify(o))}catch(e){}}
+function unbackup(){try{localStorage.removeItem(FK)}catch(e){}}
+function restore(s){try{var o=JSON.parse(s||'null');if(!o)return false;var any=false;ids.forEach(function(i){if(i!=='ct'&&o[i]!==''&&o[i]!=null)any=true});if(!any)return false;edit=o.edit;ids.forEach(function(i){$(i).value=o[i]==null?'':o[i]});$('dt').value=o.dt||today();return true}catch(e){return false}}
+document.addEventListener('input',function(e){if(e.target.closest&&e.target.closest('.formgrid'))backup()});
 function today(){var d=new Date(),p=function(x){return (x<10?'0':'')+x};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())}
 function calc(r){
-  var o={c:null,a:null,u:null};
+  var o={c:null,a:null,u:null,ak:null};
   if(r.d&&r.ch>0)o.c=r.d/r.ch;
-  if(r.d&&r.ch>0&&r.f!=null&&r.t!=null&&r.ct!=null&&r.ct>r.t&&r.f>r.t)o.a=r.d/((r.f-r.t)*r.ch/(r.ct-r.t));
+  if(r.d&&r.ch>0&&r.f!=null&&r.t!=null&&r.ct!=null&&r.ct>r.t&&r.f>r.t){o.ak=(r.f-r.t)*r.ch/(r.ct-r.t);o.a=r.d/o.ak}
   if(r.d&&r.u>0)o.u=r.d/r.u;
   return o;
 }
 function sorted(){return trips.slice().sort(function(a,b){var x=a.date||'',y=b.date||'';return x<y?-1:x>y?1:a.row-b.row})}
 function stats(){
-  var td=0,dc=0,kc=0,du=0,ku=0;
+  var td=0,dc=0,kc=0,da=0,ka=0,du=0,ku=0,nc=0;
   trips.forEach(function(r){
     if(r.status!=='Complete')return;
-    td+=r.d||0;
+    nc++;td+=r.d||0;var c=calc(r);
     if(r.d&&r.ch>0){dc+=r.d;kc+=r.ch}
+    if(c.ak){da+=r.d;ka+=c.ak}
     if(r.d&&r.u>0){du+=r.d;ku+=r.u}
   });
-  return {td:td.toFixed(1),c:kc?(dc/kc).toFixed(1):'-',u:ku?(du/ku).toFixed(1):'-'};
+  return {nc:nc,td:td,c:kc?dc/kc:null,a:ka?da/ka:null,u:ku?du/ku:null};
 }
 function lastCt(){var s=sorted();for(var i=s.length-1;i>=0;i--){if(s[i].status==='Complete'&&s[i].ct!=null)return s[i].ct}return null}
 function prefill(){if(edit!=null)return;var f=$('f');if(f.value===''){var c=lastCt();if(c!=null)f.value=c}}
+
+/* ---------- trend chart ---------- */
+var NS='http://www.w3.org/2000/svg';
+function el(t,a,p){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
+function trend(){
+  var pts=sorted().filter(function(r){return r.status==='Complete'}).map(function(r){var c=calc(r);return {r:r,c:c.a,u:c.u}}).filter(function(p){return p.c!=null||p.u!=null});
+  $('trendCard').style.display=pts.length>=2?'':'none';if(pts.length<2)return;
+  var w=$('trend');w.innerHTML='';
+  var W=Math.max(280,w.clientWidth||900),narrow=W<560,H=narrow?190:220,m={t:14,r:12,b:26,l:34};
+  var vals=[];pts.forEach(function(p){if(p.c!=null)vals.push(p.c);if(p.u!=null)vals.push(p.u)});
+  var lo=Math.floor(Math.min.apply(null,vals)-0.5),hi=Math.ceil(Math.max.apply(null,vals)+0.5);if(lo<0)lo=0;
+  var svg=el('svg',{width:W,height:H,viewBox:'0 0 '+W+' '+H,role:'img','aria-label':'Efficiency per trip'},w);
+  var tip=document.createElement('div');tip.className='tip';w.appendChild(tip);
+  var iw=W-m.l-m.r,ih=H-m.t-m.b,X=function(i){return m.l+(pts.length===1?iw/2:iw*i/(pts.length-1))},Y=function(v){return m.t+ih-(v-lo)/(hi-lo)*ih};
+  var step=(hi-lo)>4?1:0.5;
+  for(var v=lo;v<=hi+1e-9;v+=step){el('line',{x1:m.l,x2:W-m.r,y1:Y(v),y2:Y(v),stroke:'var(--grid)'},svg);var tx=el('text',{x:m.l-6,y:Y(v)+4,'text-anchor':'end'},svg);tx.textContent=v.toFixed(step<1?1:0)}
+  [['u','var(--l2)'],['c','var(--l1)']].forEach(function(s){
+    var d='',first=true;pts.forEach(function(p,i){if(p[s[0]]==null){first=true;return}d+=(first?'M':'L')+X(i)+','+Y(p[s[0]]);first=false});
+    el('path',{d:d,fill:'none',stroke:s[1],'stroke-width':2.5,'stroke-linejoin':'round','stroke-linecap':'round'},svg);
+    pts.forEach(function(p,i){if(p[s[0]]!=null)el('circle',{cx:X(i),cy:Y(p[s[0]]),r:3.5,fill:'var(--card)',stroke:s[1],'stroke-width':2},svg)});
+  });
+  var every=Math.ceil(pts.length/(narrow?4:8));
+  pts.forEach(function(p,i){if(i%every===0||i===pts.length-1){var t=el('text',{x:X(i),y:H-7,'text-anchor':'middle'},svg);t.textContent=sdate(p.r.date)}});
+  var band=iw/Math.max(1,pts.length-1);
+  pts.forEach(function(p,i){var hit=el('rect',{x:X(i)-band/2,y:m.t,width:band,height:ih,fill:'transparent'},svg);
+    var mv=function(e){var b=w.getBoundingClientRect();tip.innerHTML='<b>'+fdate(p.r.date)+' · '+n(p.r.d,1,' km')+'</b>Adjusted: '+e1(p.c)+' km/kWh<br>Tesla\'s reading: '+e1(p.u)+' km/kWh';tip.style.display='block';var x=e.clientX-b.left,tw=tip.offsetWidth,l=x+12;if(l+tw>W)l=Math.max(0,x-tw-12);tip.style.left=l+'px';tip.style.top=Math.max(0,e.clientY-b.top-tip.offsetHeight-8)+'px'};
+    hit.addEventListener('pointermove',mv);hit.addEventListener('pointerdown',mv);hit.addEventListener('pointerleave',function(){tip.style.display='none'})});
+}
+
+/* ---------- render ---------- */
 function render(){
-  var h='',s=sorted();
+  var rows='',cards='',s=sorted().reverse();
   s.forEach(function(r){
     var c=calc(r),dr=r.status==='Draft';
-    h+='<tr data-row="'+r.row+'"><td class="g">'+(r.date||'')+(dr?' <span class="draft">draft</span>':'')+'</td><td class="g">'+n(r.d,1,' km')+'</td><td class="g">'+n(r.f,0,'%')+'</td><td class="g">'+n(r.t,0,'%')+'</td><td class="g">'+n(r.rem,1,' km')+'</td><td class="y">'+n(r.pp,1,'%')+'</td><td class="y">'+n(r.pk,1,' km')+'</td><td class="b">'+n(r.ct,0,'%')+'</td><td class="b">'+n(r.ch,2,' kWh')+'</td><td>'+n(c.c,1,' km/kWh')+'</td><td>'+n(c.a,1,' km/kWh')+'</td><td class="r">'+n(r.u,2,' kWh')+'</td><td>'+n(c.u,1,' km/kWh')+'</td><td><button class="ghost del" data-del="'+r.row+'" aria-label="Delete trip">'+(pend===r.row?'Sure?':'✕')+'</button></td></tr>';
+    rows+='<tr data-row="'+r.row+'"><td class="l">'+fdate(r.date)+(dr?'<span class="chip">Draft</span>':'')+(r.pending?'<span class="chip up">'+(flushing?'Uploading…':'Not uploaded yet')+'</span>':'')+'</td><td>'+n(r.d,1,' km')+'</td><td>'+(r.f!=null||r.t!=null?(r.f!=null?n(r.f,0,'%'):'?')+' → '+(r.t!=null?n(r.t,0,'%'):'?'):'')+'</td><td class="dim">'+n(r.rem,0,' km')+'</td>'+
+      '<td class="sep">'+n(r.ch,2,' kWh')+'</td><td class="dim">'+n(r.ct,0,'%')+'</td><td class="sep">'+n(r.u,2,' kWh')+'</td>'+
+      '<td class="sep dim">'+n(r.pp,1,'%')+(r.pk!=null?' / '+n(r.pk,1,' km'):'')+'</td>'+
+      '<td class="sep eff">'+e1(c.a)+'</td><td class="eff">'+e1(c.u)+'</td><td><span class="edit-l">'+(r.pending?'':dr?'Finish':'Edit')+'</span></td></tr>';
+    var meta=[];
+    if(r.ch!=null)meta.push('Charged '+n(r.ch,2,' kWh')+(r.ct!=null?' to '+n(r.ct,0,'%'):''));
+    if(r.u!=null)meta.push('Tesla used '+n(r.u,2,' kWh'));
+    if(r.rem!=null)meta.push('Range left '+n(r.rem,0,' km'));
+    if(r.pp!=null||r.pk!=null)meta.push('Lost while parked '+(r.pp!=null?n(r.pp,1,'%'):'')+(r.pk!=null?' ('+n(r.pk,1,' km')+')':''));
+    cards+='<div class="trip" data-row="'+r.row+'"><div class="t-head"><span class="t-date">'+fdate(r.date)+'</span>'+(dr?'<span class="chip">Draft</span>':'')+(r.pending?'<span class="chip up">'+(flushing?'Uploading…':'Not uploaded')+'</span>':'<span class="edit-l">'+(dr?'Finish':'Edit')+'</span>')+'</div><div class="t-main"><b>'+(r.d!=null?n(r.d,1,' km'):'–')+'</b><span>Battery '+(r.f!=null?n(r.f,0,'%'):'?')+' → '+(r.t!=null?n(r.t,0,'%'):'?')+'</span></div><div class="t-eff"><div><b>'+e1(c.a)+'</b><span>Adjusted</span></div><div><b>'+e1(c.u)+'</b><span>Tesla</span></div></div>'+(meta.length?'<div class="t-meta">'+meta.join(' · ')+'</div>':'')+'</div>';
   });
-  $('list').innerHTML=s.length?'<table><thead><tr><th class="g">Date</th><th class="g">Distance</th><th class="g">From</th><th class="g">To</th><th class="g">Remaining</th><th class="y">Park %</th><th class="y">Park dist.</th><th class="b">Up to</th><th class="b">Power charged</th><th>Eff. charged</th><th>Eff. adjusted</th><th class="r">Power used</th><th>Eff. Tesla</th><th></th></tr></thead><tbody>'+h+'</tbody></table>':'<p class="empty">No trips yet. Fill in the form above and tap Save trip.</p>';
-  var S=stats();$('a1').textContent=S.td;$('a2').textContent=S.c;$('a3').textContent=S.u;
+  var none=!loaded?'<p class="empty"><span class="spin"></span>Loading trips…</p>':failed?'<p class="empty">Could not load trips. Tap Refresh to try again.</p>':'<p class="empty">No trips yet. Tap Add trip to log your first one.</p>';
+  var head='<thead><tr class="grp"><th colspan="4" style="--c:var(--c-trip)">Trip</th><th colspan="2" class="sep" style="--c:var(--c-chg)">Charging</th><th class="sep" style="--c:var(--c-tsl)">Tesla</th><th class="sep" style="--c:var(--c-park)">Parked</th><th colspan="3" class="sep" style="--c:var(--c-eff)">Efficiency (km/kWh)</th><th class="gap"></th></tr>'+
+    '<tr><th class="l">Date</th><th>Distance</th><th>Battery</th><th>Range left</th><th class="sep">Energy added</th><th>Up to</th><th class="sep">Energy used</th><th class="sep">Lost</th><th class="sep">Adjusted</th><th>Tesla</th><th></th></tr></thead>';
+  $('list').innerHTML=s.length?'<table>'+head+'<tbody>'+rows+'</tbody></table>':none;
+  $('cards').innerHTML=s.length?cards:none;
+  var dl=s.filter(function(r){return r.status==='Draft'});
+  $('drafts').innerHTML=dl.length?'<div class="card drafts"><h2>'+(dl.length===1?'1 draft to finish':dl.length+' drafts to finish')+'</h2><div class="note">Trips you started but haven\'t completed yet.</div>'+dl.map(function(r){return '<button class="draft-row" type="button" data-row="'+r.row+'"><span><b>'+fdate(r.date)+'</b> · '+(r.d!=null?n(r.d,1,' km'):'no distance yet')+'</span><span>Finish →</span></button>'}).join('')+'</div>':'';
+  var S=stats(),U=' <small>km/kWh</small>';
+  [['a1',S.td.toFixed(1)+' <small>km</small>'],['a3',S.a!=null?S.a.toFixed(1)+U:'–'],['a4',S.u!=null?S.u.toFixed(1)+U:'–']].forEach(function(x){var b=$(x[0]);b.classList.toggle('skel',!loaded);b.innerHTML=!loaded?'0.0 <small>km</small>':(failed&&!trips.length)?'–':x[1]});
+  $('a1d').textContent=loaded&&!failed?S.nc+(S.nc===1?' completed trip':' completed trips'):'Completed trips';
+  var last=sorted().filter(function(r){return r.status==='Complete'}).pop();
+  var q=outbox.length?(flushing?'Uploading '+outbox.length+(outbox.length===1?' change…':' changes…'):'⏳ '+outbox.length+(outbox.length===1?' change':' changes')+' waiting to upload'):'';
+  $('meta').textContent=!loaded?'Connecting to Google Sheet…':failed?'Google Sheet not reachable':q?q+' · '+S.nc+(S.nc===1?' trip':' trips'):offline?'Offline · saved copy from '+ftime(cachedAt):'Synced with Google Sheet · '+S.nc+(S.nc===1?' trip':' trips')+(last?' · last trip '+fdate(last.date):'');
   var er=edit!=null?trips.filter(function(t){return t.row===edit})[0]:null;
-  $('save').textContent=er?'Update trip':'Save trip';
-  $('draft').style.display=(!er||er.status==='Draft')?'block':'none';
-  $('editbar').style.display=er?'flex':'none';
+  $('formtitle').textContent=er?(er.status==='Draft'?'Finish draft':'Edit trip'):'New trip';
+  $('save').textContent=er?(er.status==='Draft'?'Save as complete trip':'Update trip'):'Save trip';
+  $('draft').style.display=(!er||er.status==='Draft')?'':'none';
+  $('draft').textContent=er?'Keep as draft':'Save as draft';
+  $('delrow').style.display=er?'':'none';
+  trend();
 }
+
+/* ---------- saved copy + offline outbox ---------- */
+var CK='teslaTripsCache',OK='teslaOutbox',serverTrips=[],outbox=[],cachedAt=null,offline=false,flushing=false;
+function sget(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
+function sset(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function ftime(ts){var d=new Date(ts),h=d.getHours(),m=d.getMinutes();return d.getDate()+' '+MON[d.getMonth()]+', '+((h%12)||12)+':'+(m<10?'0':'')+m+(h<12?' am':' pm')}
+var FIELDS=['date','d','f','t','rem','pp','pk','ct','ch','u','status'];
+function nv(k,v){return v==null||v===''?'':k==='date'?String(v).slice(0,10):k==='status'?String(v):String(Number(v))}
+function match(a,b){if(!a||!b)return false;for(var i=0;i<FIELDS.length;i++){var k=FIELDS[i];if(nv(k,a[k])!==nv(k,b[k]))return false}return true}
+function strip(t){var o={};FIELDS.forEach(function(k){o[k]=t[k]==null?null:t[k]});return o}
+function findIdx(list,op){var i;for(i=0;i<list.length;i++)if(list[i].row===op.row&&match(list[i],op.ref))return i;for(i=0;i<list.length;i++)if(match(list[i],op.ref))return i;return -1}
+function applyOutbox(base){
+  var t=base.map(function(o){return Object.assign({},o)});
+  outbox.forEach(function(op){
+    if(op.action==='delete'){var i=findIdx(t,op);if(i>-1)t.splice(i,1);return}
+    if(op.ref==null){t.push(Object.assign({},op.trip,{row:'p'+op.id,pending:true}));return}
+    var j=findIdx(t,op);if(j>-1)t[j]=Object.assign({},op.trip,{row:t[j].row,pending:true});
+  });
+  return t;
+}
+function rebuild(){trips=applyOutbox(serverTrips);render()}
+function saveCache(){cachedAt=Date.now();sset(CK,{at:cachedAt,trips:serverTrips})}
+/* turn a queued change into a request against the sheet as it is now (rows can move) */
+function prep(op){
+  if(op.action==='save'&&op.ref==null){if(op.maybe&&serverTrips.some(function(t){return match(t,op.trip)}))return null;return {action:'save',row:null,trip:op.trip}}
+  if(op.maybe&&op.action==='save'&&serverTrips.some(function(t){return match(t,op.trip)}))return null;
+  var i=findIdx(serverTrips,op);if(i<0)return null;
+  return op.action==='delete'?{action:'delete',row:serverTrips[i].row}:{action:'save',row:serverTrips[i].row,trip:op.trip};
+}
+function enqueue(op){op.id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);outbox.push(op);sset(OK,outbox);rebuild();return flush(op)}
+function flush(mine){
+  if(flushing||!outbox.length)return Promise.resolve();
+  if(busy){setTimeout(function(){flush(mine)},800);return Promise.resolve()}
+  flushing=true;render();
+  var step=function(){
+    if(!outbox.length)return Promise.resolve();
+    var op=outbox[0],body=prep(op);
+    if(body===null){outbox.shift();sset(OK,outbox);return step()}
+    return call({method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)},null).then(function(){outbox.shift();sset(OK,outbox);return step()});
+  };
+  var pre=outbox.some(function(o){return o.maybe})?call(undefined,null):Promise.resolve();
+  return pre.then(step).then(function(){
+    flushing=false;offline=false;loaded=true;failed=false;rebuild();
+    page(mine?mine.msg:'All changes uploaded to your Google Sheet.',true);
+  },function(e){
+    flushing=false;
+    if(e&&e.net){
+      if(e.maybe&&outbox[0])outbox[0].maybe=true;sset(OK,outbox);offline=true;rebuild();
+      page((mine?'Saved on this device. ':'')+'The line is '+(e.message==='no connection'?'down':'too slow')+' right now, so '+(outbox.length===1?'1 change is':outbox.length+' changes are')+' waiting to upload. It will upload by itself when the line is back.','wait');
+      return;
+    }
+    var op=outbox.shift();sset(OK,outbox);rebuild();
+    if(op&&op.action==='save'){
+      edit=op.ref?op.row:null;ids.forEach(function(i){$(i).value=op.trip[i]==null?'':op.trip[i]});$('dt').value=op.trip.date||today();backup();render();openPanel();
+      say('Not saved: '+(e&&e.message)+'. Your entries are back in the form.');
+    }else page('Could not delete the trip: '+(e&&e.message),false);
+  });
+}
+setInterval(function(){if(outbox.length&&!flushing&&!busy)flush()},20000);
+addEventListener('online',function(){load().then(function(){flush()})});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState!=='visible')return;if(outbox.length)flush();else if(!busy&&(!cachedAt||Date.now()-cachedAt>60000))load()});
+
+/* ---------- panel ---------- */
+function openPanel(){$('ov').classList.add('open');$('ov').setAttribute('aria-hidden','false');document.body.style.overflow='hidden'}
+function closePanel(){$('ov').classList.remove('open');$('ov').setAttribute('aria-hidden','true');document.body.style.overflow='';say('')}
+function newTrip(){if(edit!=null)clearForm();prefill();openPanel()}
+$('hdrAdd').onclick=$('fab').onclick=newTrip;
+$('shX').onclick=function(){if(edit!=null){clearForm()}closePanel()};
+$('ov').addEventListener('click',function(e){if(e.target===$('ov'))$('shX').onclick()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('ov').classList.contains('open'))$('shX').onclick()});
+document.querySelector('details.explain').addEventListener('toggle',function(e){$('defs').style.display=e.target.open?'grid':'none'});
+
 function clearForm(){
+  unbackup();
   ids.forEach(function(i){$(i).value=i==='ct'?80:''});
   $('dt').value=today();edit=null;render();prefill();
 }
-function call(opts){
+function setBusy(on,btn){if(btn)btn.classList.toggle('loading',on)}
+function call(opts,btn){
   if(busy)return Promise.reject(new Error('Still working, try again in a moment'));
-  busy=true;$('save').disabled=true;$('draft').disabled=true;
-  return fetch(url,opts).then(function(r){return r.json()}).then(function(j){
+  busy=true;setBusy(true,btn);
+  var post=opts&&opts.method==='POST',ctl=new AbortController(),to=setTimeout(function(){ctl.abort()},post?30000:25000);
+  return fetch(url,Object.assign({signal:ctl.signal},opts||{})).then(function(r){return r.json()}).then(function(j){
+    clearTimeout(to);
     if(!j.ok)throw new Error(j.error||'The sheet reported an error');
-    trips=j.trips;
-  }).then(function(){busy=false;$('save').disabled=false;$('draft').disabled=false;},function(e){busy=false;$('save').disabled=false;$('draft').disabled=false;throw e});
+    serverTrips=j.trips;saveCache();
+  }).then(function(){busy=false;setBusy(false,btn)},function(e){
+    clearTimeout(to);busy=false;setBusy(false,btn);
+    if(e&&(e.name==='AbortError'||e.name==='TypeError'||e.name==='SyntaxError')){var x=new Error(e.name==='TypeError'?'no connection':'too slow');x.net=true;x.maybe=post&&e.name!=='TypeError';throw x}
+    throw e;
+  });
 }
-function post(body){return call({method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)})}
-function load(){
-  say('Loading...',true);
-  return call().then(function(){say('');render();prefill()}).catch(function(e){say('Could not reach the sheet: '+e.message)});
+function load(btn){
+  if(busy||flushing)return Promise.resolve();
+  return call(undefined,btn).then(function(){loaded=true;failed=false;offline=false;rebuild();prefill();if(btn)page('Up to date with your Google Sheet.',true)}).catch(function(e){
+    loaded=true;
+    if(cachedAt){offline=true;failed=false;rebuild();page('Can\'t reach the Google Sheet right now (line '+(e.message==='no connection'?'down':'slow')+'). Showing your saved copy from '+ftime(cachedAt)+'. You can still add trips; they will upload when the line is back.','wait')}
+    else{failed=true;rebuild();page('Could not reach the Google Sheet: '+e.message+'. Tap Refresh to try again.',false)}
+  });
 }
 function collect(){var t={date:$('dt').value||null};ids.forEach(function(i){t[i]=num(i)});return t}
 function doSave(draft){
   var t=collect();
   if(!draft){
-    var req=[['dt','the date'],['d','the distance'],['f','From %'],['t','To %'],['ch','the power charged'],['ct','Charged up to %'],['u','the power used']];
-    for(var q=0;q<req.length;q++){if(t[req[q][0]]==null){say('Enter '+req[q][1]+'.');return}}
-    if(t.f<=t.t){say('From % must be higher than To %.');return}
-    if(t.ct<=t.t){say('Charged up to % must be higher than To %.');return}
+    var req=[['date','the date'],['d','the distance'],['f','the battery % at the start'],['t','the battery % at the end'],['u','the energy used from Tesla\'s trip screen'],['ch','the energy added at the charger'],['ct','the % you charged up to']];
+    for(var q=0;q<req.length;q++){if(t[req[q][0]]==null){say('Enter '+req[q][1]+', or save it as a draft.');return}}
+    if(t.f<=t.t){say('Battery at start must be higher than battery at end.');return}
+    if(t.ct<=t.t){say('"Charged up to" must be higher than battery at end.');return}
   }else if(t.d==null&&t.f==null&&t.t==null&&t.pk==null&&t.rem==null){say('Enter at least one figure to save a draft.');return}
   t.status=draft?'Draft':'Complete';
-  say('Saving...',true);
-  post({action:'save',row:edit,trip:t}).then(function(){say(draft?'Draft saved.':'Trip saved.',true);clearForm()}).catch(function(e){say('Not saved: '+e.message)});
+  var er=edit!=null?trips.filter(function(x){return x.row===edit})[0]:null;
+  var op={action:'save',row:er?er.row:null,ref:er?strip(er):null,trip:t,msg:draft?'Draft saved. Finish it any time from the top of the page.':(er?'Trip updated.':'Trip saved.')};
+  clearForm();closePanel();enqueue(op);
 }
 $('save').onclick=function(){doSave(false)};
 $('draft').onclick=function(){doSave(true)};
-$('cancel').onclick=function(){say('');clearForm()};
-$('reload').onclick=function(){load()};
-$('list').onclick=function(e){
-  var b=e.target.closest('button[data-del]');
-  if(b){
-    var row=Number(b.getAttribute('data-del'));
-    if(pend===row){
-      pend=null;clearTimeout(pt);say('Deleting...',true);
-      post({action:'delete',row:row}).then(function(){say('Trip deleted.',true);if(edit===row)clearForm();else render()}).catch(function(x){say('Not deleted: '+x.message);render()});
-    }else{pend=row;render();clearTimeout(pt);pt=setTimeout(function(){pend=null;render()},4000)}
-    return;
-  }
-  var tr=e.target.closest('tr[data-row]');if(!tr)return;
-  var row2=Number(tr.getAttribute('data-row')),r=trips.filter(function(t){return t.row===row2})[0];
+var cT;
+$('cancel').onclick=function(){var b=$('cancel');if(b.textContent!=='Discard changes? Tap again'){b.textContent='Discard changes? Tap again';clearTimeout(cT);cT=setTimeout(function(){b.textContent='Discard changes'},4000);return}b.textContent='Discard changes';clearForm();closePanel();page('Changes discarded. The saved trip is unchanged.',true)};
+var dT;
+$('delBtn').onclick=function(){var b=$('delBtn');
+  if(!b.classList.contains('sure')){b.classList.add('sure');b.textContent='Tap again to delete';clearTimeout(dT);dT=setTimeout(function(){b.classList.remove('sure');b.textContent='Delete this trip'},4000);return}
+  clearTimeout(dT);b.classList.remove('sure');b.textContent='Delete this trip';
+  var er=trips.filter(function(x){return x.row===edit})[0];if(!er)return;
+  clearForm();closePanel();enqueue({action:'delete',row:er.row,ref:strip(er),msg:'Trip deleted.'});
+};
+$('reload').onclick=function(){if(outbox.length)flush();else load($('reload'))};
+$('list').onclick=$('cards').onclick=$('drafts').onclick=function(e){
+  var tr=e.target.closest('[data-row]');if(!tr)return;
+  var key=tr.getAttribute('data-row'),r=trips.filter(function(t){return String(t.row)===key})[0];
   if(!r)return;
-  edit=row2;
+  if(r.pending){page('This trip is still waiting to upload. You can edit it once it has synced.','wait');return}
+  edit=r.row;
   ids.forEach(function(i){$(i).value=r[i]==null?'':r[i]});
-  $('dt').value=r.date||today();
-  say('');render();window.scrollTo({top:0,behavior:'smooth'});
+  $('dt').value=r.date?String(r.date).slice(0,10):today();
+  say('');render();openPanel();
 };
-function showApp(){
-  $('setup').style.display=url?'none':'block';
-  $('app').style.display=url?'block':'none';
-}
-$('connect').onclick=function(){
-  var v=$('relay').value.trim();
-  if(v.indexOf('https://script.google.com/macros/s/')!==0||v.slice(-5)!=='/exec'){$('smsg').textContent='That does not look like the web app link. It should start with https://script.google.com/macros/s/ and end with /exec.';return}
-  $('smsg').textContent='';url=v;try{localStorage.setItem(LS,url)}catch(e){}
-  showApp();clearForm();load();
-};
-$('unlink').onclick=function(){
-  if($('unlink').textContent!=='Tap again to confirm'){$('unlink').textContent='Tap again to confirm';setTimeout(function(){$('unlink').textContent='Change sheet link'},4000);return}
-  try{localStorage.removeItem(LS)}catch(e){}
-  url='';trips=[];$('unlink').textContent='Change sheet link';$('relay').value='';showApp();
-};
-showApp();
-if(url){clearForm();load()}
+var rt;addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){if(loaded)trend()},150)});
+$('app').style.display='block';
+(function start(){
+  var C=sget(CK);outbox=sget(OK)||[];
+  if(C&&C.trips){serverTrips=C.trips;cachedAt=C.at;loaded=true}
+  var savedForm=null;try{savedForm=localStorage.getItem(FK)}catch(e){}
+  clearForm();rebuild();
+  if(loaded&&window.portalReady)window.portalReady();
+  if(restore(savedForm)){render();backup();openPanel();say('Restored the entries you had not saved yet.',true)}
+  load().then(function(){if(outbox.length)flush()});
+})();
 </script>
 </body>
 </html>
